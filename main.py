@@ -1,6 +1,7 @@
 from telegram.ext import Application, CommandHandler
 from configparser import ConfigParser
 import logging
+import utils
 
 config = ConfigParser()
 configfile = 'bot.conf'
@@ -26,6 +27,10 @@ async def chatId(update,context):
     chatId = update.message.chat.id
     await update.message.reply_text(chatId)
 
+def record_new_files(update,context):
+    text = utils.record_new_files()
+
+
 def main():
     """Start the bot"""
     application = Application.builder().token(token).build()
@@ -34,8 +39,8 @@ def main():
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('help', help))
     application.add_handler(CommandHandler('helpme', help))
-    application.run_polling()
     print('Bot started')
+    application.run_polling()
 
 if __name__ == "__main__":
     main()
