@@ -27,8 +27,8 @@ async def chatId(update,context):
     chatId = update.message.chat.id
     await update.message.reply_text(chatId)
 
-def record_new_files(update,context):
-    text = utils.record_new_files()
+async def record_new_files(update,context):
+    utils.record_new_files()
 
 
 def main():
@@ -39,6 +39,7 @@ def main():
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('help', help))
     application.add_handler(CommandHandler('helpme', help))
+    application.add_handler(CommandHandler('scan', record_new_files))
     print('Bot started')
     application.run_polling()
 

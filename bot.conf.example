@@ -1,2 +1,11 @@
 [SETTINGS_BOT]
 token = Your Telegram bot token here!
+[SETTINGS]
+path = root path to scan 
+dbhost = dbhost
+dbname= dbname
+dbuser= dbuser
+dbpassword=dbpassword
+folders_to_skip= folders to skip by the scanner, comma separated
+providers= provider folders to look for, comma separated 
+
