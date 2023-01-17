@@ -18,6 +18,22 @@ config.read(f"./{configfile}")
 settings = config['SETTINGS']
 path = format(settings['path'])
 providers= settings['providers'].split(',')
+dbFaxes = settings['dbname']
+dest = settings['destinyPathDuplicate']
+
+def connectionDb(db):
+    try:
+        mydb = mysql.connector.connect(
+            host=settings['dbhost'],
+            user=settings['dbuser'],
+            password=settings['dbpassword'],
+            database=db,
+            auth_plugin="mysql_native_password" 
+        )
+        return mydb
+    except OSError:
+        return OSError
+    
 
 def add_files(mydb,filepath, filenames,provider,doctype):
     myCursor = mydb.cursor()
@@ -80,13 +96,7 @@ def scan_folder(mydb,path,provider=None,doctype=None,level=None):
 
 def record_new_files():
     try:
-        mydb = mysql.connector.connect(
-            host=settings['dbhost'],
-            user=settings['dbuser'],
-            password=settings['dbpassword'],
-            database=settings['dbname'],
-            auth_plugin="mysql_native_password" 
-        )
+        mydb = connectionDb(dbFaxes)
         for section in config.sections():
             provider= section.format(['']).upper()
             if provider in providers:
@@ -101,7 +111,7 @@ def record_new_files():
 
 
 #------------------funciones agregadas Daniel ----------------------
-#--------funcion mover-------------
+#--------function move archive-------------
 def create_destinyFinal(path):
   yearFolder = f"{path}\{str(year)}"
   if not os.path.exists(yearFolder):
@@ -138,3 +148,31 @@ def scan_archive(path):
         scan_archive(folder)
       
 
+#------------Duplicate function-----------
+
+def scan_duplciate_inbox(path, destiny = dest):
+    dir = os.listdir(path)
+    for file in dir:    
+        check = os.path.join(path, file)    
+        edited = os.path.getmtime(check)    
+        if os.path.isfile(check):    
+            print(file)   
+            conection = connectionDb(dbFaxes) 
+            myCursor = conection.cursor()      
+            myCursor.execute("SELECT filepath, filename, filecreation FROM duplicate where filepath = '{}' and filename = '{}' and filecreation = '{}';".format(path, file, edited))
+            result = myCursor.fetchall()
+        
+            if len(result) == 0: 
+                myCursor.execute("INSERT INTO duplicate (filepath, filename, filecreation, dateduplicate) VALUES ('{}','{}','{}', current_timestamp);".format(path, file, edited) )
+                conection.commit()
+                destinyfinal = f"{destiny}\{file}"    
+                print("estamos guardando ")        
+                shutil.copy(check, destinyfinal)           
+                       
+        
+        elif os.path.isdir(check):
+            destinyF = f"{dest}\{file}"
+            if not os.path.exists(destinyF):
+                os.mkdir(destinyF)        
+            newPath = os.path.join(path, file)      
+            scan_duplciate_inbox(newPath, destinyF)

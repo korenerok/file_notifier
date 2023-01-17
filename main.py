@@ -11,6 +11,7 @@ configfile = 'bot.conf'
 config.read(f"./{configfile}")
 token = config['SETTINGS_BOT']['token']
 scanPath = config['SETTINGS']['path']
+inboxPath = config['SETTINGS']['inboxPath']
 
 async def start(update,context):
     """Gives a hearty salutation"""
@@ -33,6 +34,7 @@ async def chatId(update,context):
 async def scheduled_tasks(context):
     utils.record_new_files()
     utils.scan_archive(scanPath)
+    utils.scan_duplciate_inbox(inboxPath)
 
 
 def main():
