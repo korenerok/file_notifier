@@ -2,6 +2,14 @@ from datetime import datetime
 import mysql.connector 
 from configparser import ConfigParser
 import os 
+from datetime import date 
+#agredados Daniel 
+date = date.today()
+year = date.year
+month = date.month
+day = date.day
+
+
 
 config = ConfigParser()
 configfile = 'bot.conf'
@@ -76,7 +84,7 @@ def record_new_files():
             user=settings['dbuser'],
             password=settings['dbpassword'],
             database=settings['dbname'],
-            auth_plugin="mysql_native_password"
+            auth_plugin="mysql_native_password" 
         )
         for section in config.sections():
             provider= section.format(['']).upper()
@@ -88,3 +96,44 @@ def record_new_files():
     except OSError:
         return OSError
     return None
+
+
+
+#------------------funciones agregadas Daniel ----------------------
+#--------funcion mover-------------
+def create_destinyFinal(path):
+  yearFolder = f"{path}\{str(year)}"
+  if not os.path.exists(yearFolder):
+    os.mkdir(yearFolder)
+  monthFolder = f"{yearFolder}\{str(month)}"
+  if not os.path.exists(monthFolder):
+    os.mkdir(monthFolder)
+  dayFolder = f"{monthFolder}\{str(day)}"
+  if not os.path.exists(dayFolder):
+    os.mkdir(dayFolder)
+  return dayFolder
+    
+  
+
+
+def scan_archive(path):
+  dir = os.listdir(path)
+  for folder in dir:    
+    if folder == "ARCHIVE" and folder !="DEFAULT":
+      folder = os.path.join(path, folder)        
+      archiveDir = os.listdir(folder)
+            
+      for files in archiveDir:
+        if files != str(year):
+          destiny = create_destinyFinal(folder) 
+          src = f"{folder}\{files}"        
+          destinyF= f"{destiny}\{files}"         
+          shutil.move(src, destinyF)    
+        
+     
+    elif folder !="ARCHIVE" and folder !="DEFAULT":
+      folder = os.path.join(path, folder)
+      if os.path.isdir(folder):
+        scan_archive(folder)
+      
+

@@ -1,4 +1,6 @@
-from telegram.ext import Application, CommandHandler
+from datetime import time
+import pytz
+from telegram.ext import Application, CommandHandler,JobQueue
 from configparser import ConfigParser
 import logging
 import utils
@@ -40,6 +42,7 @@ def main():
     application.add_handler(CommandHandler('help', help))
     application.add_handler(CommandHandler('helpme', help))
     application.add_handler(CommandHandler('scan', record_new_files))
+    application.job_queue.run_repeating(record_new_files,interval=120, first = time(hour=6, minute=0, second=0, tzinfo=pytz.timezone('US/Eastern')), last= time(hour=19, minute=0, second=0, tzinfo=pytz.timezone('US/Eastern')))
     print('Bot started')
     application.run_polling()
 
