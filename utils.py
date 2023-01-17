@@ -3,6 +3,7 @@ import mysql.connector
 from configparser import ConfigParser
 import os 
 from datetime import date 
+import shutil
 #agredados Daniel 
 date = date.today()
 year = date.year

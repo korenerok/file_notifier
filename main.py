@@ -10,6 +10,7 @@ configfile = 'bot.conf'
 
 config.read(f"./{configfile}")
 token = config['SETTINGS_BOT']['token']
+scanPath = config['SETTINGS']['path']
 
 async def start(update,context):
     """Gives a hearty salutation"""
@@ -29,8 +30,9 @@ async def chatId(update,context):
     chatId = update.message.chat.id
     await update.message.reply_text(chatId)
 
-async def record_new_files(update,context):
+async def scheduled_tasks(context):
     utils.record_new_files()
+    utils.scan_archive(scanPath)
 
 
 def main():
@@ -41,8 +43,8 @@ def main():
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('help', help))
     application.add_handler(CommandHandler('helpme', help))
-    application.add_handler(CommandHandler('scan', record_new_files))
-    application.job_queue.run_repeating(record_new_files,interval=120, first = time(hour=6, minute=0, second=0, tzinfo=pytz.timezone('US/Eastern')), last= time(hour=19, minute=0, second=0, tzinfo=pytz.timezone('US/Eastern')))
+    application.add_handler(CommandHandler('scan', scheduled_tasks))
+    application.job_queue.run_repeating(scheduled_tasks, interval=120, first = time(hour=6, minute=0, second=0, tzinfo=pytz.timezone('US/Eastern')), last= time(hour=19, minute=0, second=0, tzinfo=pytz.timezone('US/Eastern')))
     print('Bot started')
     application.run_polling()
 
