@@ -4,11 +4,7 @@ from configparser import ConfigParser
 import os 
 from datetime import date 
 import shutil
-#agredados Daniel 
-date = date.today()
-year = date.year
-month = date.month
-day = date.day
+
 
 
 
@@ -112,42 +108,40 @@ def record_new_files():
 
 #------------------funciones agregadas Daniel ----------------------
 #--------function move archive-------------
-def create_destinyFinal(path):
-  yearFolder = f"{path}\{str(year)}"
-  if not os.path.exists(yearFolder):
-    os.mkdir(yearFolder)
-  monthFolder = f"{yearFolder}\{str(month)}"
-  if not os.path.exists(monthFolder):
-    os.mkdir(monthFolder)
-  dayFolder = f"{monthFolder}\{str(day)}"
-  if not os.path.exists(dayFolder):
-    os.mkdir(dayFolder)
-  return dayFolder
-    
-  
+def create_final_destination(path):
+    today=date.today()
+    yearFolder = f"{path}{os.sep}{str(today.year)}"
+    if not os.path.exists(yearFolder):
+        os.mkdir(yearFolder)
+    monthFolder = f"{yearFolder}{os.sep}{str(today.month)}"
+    if not os.path.exists(monthFolder):
+        os.mkdir(monthFolder)
+    dayFolder = f"{monthFolder}{os.sep}{str(today.day)}"
+    if not os.path.exists(dayFolder):
+        os.mkdir(dayFolder)
+    return dayFolder
 
+def is_archive_folder(path):
+    """return if the last member of the path is archive folder"""
+    return path.split(os.sep)[-1].upper() == "ARCHIVE"
 
-def scan_archive(path):
-  dir = os.listdir(path)
-  for folder in dir:    
-    if folder == "ARCHIVE" and folder !="DEFAULT":
-      folder = os.path.join(path, folder)        
-      archiveDir = os.listdir(folder)
-            
-      for files in archiveDir:
-        if files != str(year):
-          destiny = create_destinyFinal(folder) 
-          src = f"{folder}\{files}"        
-          destinyF= f"{destiny}\{files}"         
-          shutil.move(src, destinyF)    
-        
+def categorize_archives():
+    #find ARCHIVE folders
+    folderpaths=os.walk(".")
+    folderpaths=[x[0] for x in folderpaths]
+    folderpaths= list(filter(is_archive_folder,folderpaths))
+    for archivefolder in folderpaths:
+        archive_files(archivefolder)
+
+def archive_files(path):
+    files = os.listdir(path)
+    destinationFolder = create_final_destination(path)
+    for file in files:
+        if os.path.isfile(file):
+            src = f"{path}{os.sep}{file}"
+            destination= f"{destinationFolder}{os.sep}{file}"
+            shutil.move(src, destination)
      
-    elif folder !="ARCHIVE" and folder !="DEFAULT":
-      folder = os.path.join(path, folder)
-      if os.path.isdir(folder):
-        scan_archive(folder)
-      
-
 #------------Duplicate function-----------
 
 def scan_duplciate_inbox(path, destiny = dest):
