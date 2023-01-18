@@ -5,25 +5,17 @@ import os
 from datetime import date 
 import shutil
 
-
-
-
 config = ConfigParser()
-configfile = 'bot.conf'
-config.read(f"./{configfile}")
+config.read(f"./bot.conf")
 settings = config['SETTINGS']
-path = format(settings['path'])
-providers= settings['providers'].split(',')
-dbFaxes = settings['dbname']
-dest = settings['destinyPathDuplicate']
 
-def connectionDb(db):
+def connectionDb():
     try:
         mydb = mysql.connector.connect(
             host=settings['dbhost'],
             user=settings['dbuser'],
             password=settings['dbpassword'],
-            database=db,
+            database=settings['dbname'],
             auth_plugin="mysql_native_password" 
         )
         return mydb
@@ -92,11 +84,12 @@ def scan_folder(mydb,path,provider=None,doctype=None,level=None):
 
 def record_new_files():
     try:
-        mydb = connectionDb(dbFaxes)
+        mydb = connectionDb()
+        providers= settings['providers'].split(',')
         for section in config.sections():
             provider= section.format(['']).upper()
             if provider in providers:
-                full_path = path + os.sep + config.get(section,'folder')
+                full_path = settings['path'] + os.sep + config.get(section,'folder')
                 scan_folder(mydb,full_path,provider)
         mydb.close()
 
@@ -125,40 +118,36 @@ def is_archive_folder(path):
     """return if the last member of the path is archive folder"""
     return path.split(os.sep)[-1].upper() == "ARCHIVE"
 
-
-def archive_files(path):
-    today=date.today()    
-    files = os.listdir(path)    
-    destinationFolder = create_final_destination(path)
-    for file in files:
-        if file != str(today.year):
-            src = f"{path}{os.sep}{file}"
-            destination= f"{destinationFolder}{os.sep}{file}"
-            shutil.move(src, destination)
-     
+def valid_file_for_archive(filename):
+    years=[x for x in range(2022,2042)]
+    return (os.path.isfile(filename)) or (os.path.isdir(filename) and filename not in years)
 
 def categorize_archives():
     #find ARCHIVE folders
-    folderpaths=os.walk(path)
+    folderpaths=os.walk(settings['path'])
     folderpaths=[x[0] for x in folderpaths]
     folderpaths= list(filter(is_archive_folder,folderpaths))   
-    for archivefolder in folderpaths:  
-      if(os.path.exists(archivefolder)):
+    for archivefolder in folderpaths:
         archive_files(archivefolder)
-        
-        
-    
 
-     
+def archive_files(path):
+    files = os.listdir(path)
+    destinationFolder = create_final_destination(path)
+    for filename in files:
+        if valid_file_for_archive(filename):
+            src = f"{path}{os.sep}{filename}"
+            destination= f"{destinationFolder}{os.sep}{filename}"
+            shutil.move(src, destination)
+
 #------------Duplicate function-----------
 
-def scan_duplicate_inbox(path, destiny = dest):
+def scan_duplicate_inbox(path, destiny = settings['destinyPathDuplicate']):
     dir = os.listdir(path)
     for file in dir:    
         check = os.path.join(path, file)    
         edited = os.path.getmtime(check)    
         if os.path.isfile(check):     
-            conection = connectionDb(dbFaxes) 
+            conection = connectionDb() 
             myCursor = conection.cursor()      
             myCursor.execute("SELECT filepath, filename, filecreation FROM duplicate where   filename = '{}' and filecreation = '{}';".format(path, file, edited))
             result = myCursor.fetchall()
@@ -172,18 +161,18 @@ def scan_duplicate_inbox(path, destiny = dest):
                        
         
         elif os.path.isdir(check):
-            destinyF = f"{dest}{os.sep}{file}"
+            destinyF = f"{settings['destinyPathDuplicate']}{os.sep}{file}"
             if not os.path.exists(destinyF):
                 os.mkdir(destinyF)        
             newPath = os.path.join(path, file)      
             scan_duplicate_inbox(newPath, destinyF)
 
 def new_scan_provider(provider):
-    folder = f"{path}{os.sep}{provider}"
+    folder = f"{settings['path']}{os.sep}{provider}"
     scans = os.listdir(folder)
     folderReview =scans.append("To Review")
     for folder in scans: 
-        mydb = connectionDb(dbFaxes)
+        mydb = connectionDb()
         mycursor = mydb.cursor()
         mycursor.execute("SELECT document_type, provider, filename, filepath from faxes where document_type = %s and provider = %s and new = 1;", (folder, provider) )
         result = mycursor.fetchall()
