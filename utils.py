@@ -152,7 +152,7 @@ def categorize_archives():
      
 #------------Duplicate function-----------
 
-def scan_duplciate_inbox(path, destiny = dest):
+def scan_duplicate_inbox(path, destiny = dest):
     dir = os.listdir(path)
     for file in dir:    
         check = os.path.join(path, file)    
@@ -160,20 +160,37 @@ def scan_duplciate_inbox(path, destiny = dest):
         if os.path.isfile(check):     
             conection = connectionDb(dbFaxes) 
             myCursor = conection.cursor()      
-            myCursor.execute("SELECT filepath, filename, filecreation FROM duplicate where filepath = '{}' and filename = '{}' and filecreation = '{}';".format(path, file, edited))
+            myCursor.execute("SELECT filepath, filename, filecreation FROM duplicate where   filename = '{}' and filecreation = '{}';".format(path, file, edited))
             result = myCursor.fetchall()
         
             if len(result) == 0: 
                 myCursor.execute("INSERT INTO duplicate (filepath, filename, filecreation, dateduplicate) VALUES ('{}','{}','{}', current_timestamp);".format(path, file, edited) )
                 conection.commit()
-                destinyfinal = f"{destiny}\{file}"    
+                destinyfinal = f"{destiny}{os.sep}{file}"    
                 print("estamos guardando ")        
                 shutil.copy(check, destinyfinal)           
                        
         
         elif os.path.isdir(check):
-            destinyF = f"{dest}\{file}"
+            destinyF = f"{dest}{os.sep}{file}"
             if not os.path.exists(destinyF):
                 os.mkdir(destinyF)        
             newPath = os.path.join(path, file)      
-            scan_duplciate_inbox(newPath, destinyF)
+            scan_duplicate_inbox(newPath, destinyF)
+
+def new_scan_provider(provider):
+    folder = f"{path}{os.sep}{provider}"
+    scans = os.listdir(folder)
+    folderReview =scans.append("To Review")
+    for folder in scans: 
+        mydb = connectionDb(dbFaxes)
+        mycursor = mydb.cursor()
+        mycursor.execute("SELECT document_type, provider, filename, filepath from faxes where document_type = %s and provider = %s and new = 1;", (folder, provider) )
+        result = mycursor.fetchall()
+        for x in result:
+            
+            if x[0].upper() == 'TO REVIEW':
+                print(x[3].split(os.sep)[-2])
+        
+
+new_scan_provider("ROSS")
