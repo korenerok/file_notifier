@@ -125,22 +125,30 @@ def is_archive_folder(path):
     """return if the last member of the path is archive folder"""
     return path.split(os.sep)[-1].upper() == "ARCHIVE"
 
-def categorize_archives():
-    #find ARCHIVE folders
-    folderpaths=os.walk(".")
-    folderpaths=[x[0] for x in folderpaths]
-    folderpaths= list(filter(is_archive_folder,folderpaths))
-    for archivefolder in folderpaths:
-        archive_files(archivefolder)
 
 def archive_files(path):
-    files = os.listdir(path)
+    today=date.today()    
+    files = os.listdir(path)    
     destinationFolder = create_final_destination(path)
     for file in files:
-        if os.path.isfile(file):
+        if file != str(today.year):
             src = f"{path}{os.sep}{file}"
             destination= f"{destinationFolder}{os.sep}{file}"
             shutil.move(src, destination)
+     
+
+def categorize_archives():
+    #find ARCHIVE folders
+    folderpaths=os.walk(path)
+    folderpaths=[x[0] for x in folderpaths]
+    folderpaths= list(filter(is_archive_folder,folderpaths))   
+    for archivefolder in folderpaths:  
+      if(os.path.exists(archivefolder)):
+        archive_files(archivefolder)
+        
+        
+    
+
      
 #------------Duplicate function-----------
 
@@ -149,8 +157,7 @@ def scan_duplciate_inbox(path, destiny = dest):
     for file in dir:    
         check = os.path.join(path, file)    
         edited = os.path.getmtime(check)    
-        if os.path.isfile(check):    
-            print(file)   
+        if os.path.isfile(check):     
             conection = connectionDb(dbFaxes) 
             myCursor = conection.cursor()      
             myCursor.execute("SELECT filepath, filename, filecreation FROM duplicate where filepath = '{}' and filename = '{}' and filecreation = '{}';".format(path, file, edited))
