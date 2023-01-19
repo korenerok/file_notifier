@@ -143,12 +143,14 @@ def archive_files(path):
 
 def scan_duplicate_inbox(path, destiny = settings['destinyPathDuplicate']):
     dir = os.listdir(path)
+    conection = connectionDb() 
+    myCursor = conection.cursor()   
     for file in dir:    
         check = os.path.join(path, file)    
-        edited = os.path.getmtime(check)    
+        edited = os.path.getmtime(check)  
+        
         if os.path.isfile(check):     
-            conection = connectionDb() 
-            myCursor = conection.cursor()      
+                 
             myCursor.execute("SELECT filepath, filename, filecreation FROM duplicate where   filename = '{}' and filecreation = '{}';".format(path, file, edited))
             result = myCursor.fetchall()
         
@@ -177,10 +179,11 @@ def new_scan_provider(provider):
     folderReview =scans.append("To Review")
     
     count= 0
+    mydb = connectionDb()
+    mycursor = mydb.cursor()   
    
     for folder in scans: 
-        mydb = connectionDb()
-        mycursor = mydb.cursor()   
+        
         dir = ""     
         mycursor.execute("SELECT document_type, provider, filename, filepath from faxes where document_type = %s and provider = %s and new = 1;", (folder, provider) )
         result = mycursor.fetchall()
