@@ -155,9 +155,10 @@ def scan_duplicate_inbox(path, destiny = settings['destinyPathDuplicate']):
             if len(result) == 0: 
                 myCursor.execute("INSERT INTO duplicate (filepath, filename, filecreation, dateduplicate) VALUES ('{}','{}','{}', current_timestamp);".format(path, file, edited) )
                 conection.commit()
-                destinyfinal = f"{destiny}{os.sep}{file}"    
-                print("estamos guardando ")        
-                shutil.copy(check, destinyfinal)           
+                
+                destinyfinal = f"{destiny}{os.sep}{file}"         
+                shutil.copy(check, destinyfinal)            
+                 
                        
         
         elif os.path.isdir(check):
@@ -166,20 +167,55 @@ def scan_duplicate_inbox(path, destiny = settings['destinyPathDuplicate']):
                 os.mkdir(destinyF)        
             newPath = os.path.join(path, file)      
             scan_duplicate_inbox(newPath, destinyF)
+            
+        conection.close()
+        
 
 def new_scan_provider(provider):
     folder = f"{settings['path']}{os.sep}{provider}"
     scans = os.listdir(folder)
     folderReview =scans.append("To Review")
+    
+    count= 0
+   
     for folder in scans: 
         mydb = connectionDb()
-        mycursor = mydb.cursor()
+        mycursor = mydb.cursor()   
+        dir = ""     
         mycursor.execute("SELECT document_type, provider, filename, filepath from faxes where document_type = %s and provider = %s and new = 1;", (folder, provider) )
         result = mycursor.fetchall()
-        for x in result:
+        if len(result) != 0:
+            print(result)
+            msj = f"In Dr.{provider} folder had a new documents in the next folders: \n"          
             
-            if x[0].upper() == 'TO REVIEW':
-                print(x[3].split(os.sep)[-2])
-        
+            for row in result:  
+                
+                # print(dir)                 
+                if dir != row[0]:
+                    # if x[0].upper() == 'TO REVIEW':
+                    #     filepath = x[3].split(os.sep)[-2]
+                    #     msj += filepath         
+                    msj += f"{row[0]}:\n"                  
+                    msj += f"{row[2]}\n"                    
+                    dir = row[0]
+                   
+                elif dir ==row[0]:
+                    msj += f"{row[2]}\n"
+                    #print(x[2])
+                                
+                
+                # #if x[0].upper() != 'TO REVIEW':
+                # # count += 1   
+                # # test = x[3].split(os.sep)[-2]            
+                # # msj = f"{test}\n"
+                # # msj +=f"{x[0]}:\n"
+                # # msj += f"{count}. {x[2]}. \n"    
 
-new_scan_provider("ROSS")
+          
+        
+    return msj
+                # if x[0].upper() == 'TO REVIEW':
+                #     print(x[3].split(os.sep)[-2])
+            
+
+print(new_scan_provider("ROSS"))
