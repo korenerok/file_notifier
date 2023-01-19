@@ -99,7 +99,6 @@ def record_new_files():
 
 
 
-#------------------funciones agregadas Daniel ----------------------
 #--------function move archive-------------
 def create_final_destination(path):
     today=date.today()
@@ -139,6 +138,23 @@ def archive_files(path):
             destination= f"{destinationFolder}{os.sep}{filename}"
             shutil.move(src, destination)
 
+def count_new_files(provider):
+    mydb = connectionDb()
+    mycursor = mydb.cursor()
+    mycursor.execute("SELECT id, document_type, filename,toreview from faxes where provider = %s and new = 1;",(provider,))
+    result = mycursor.fetchall()
+    if len(result) >= 0:
+        msj = f"In Dr.{provider} folder there are {len(result)} new documents:\n"
+        for row in result:
+            if row[3]:
+                msj += f"-{row[1]}{os.sep}TO REVIEW -> {row[2]}\n"
+            else:
+                msj += f"-{row[1]} -> {row[2]}\n"
+    else:
+        msj = f"In Dr.{provider} folder there are no new documents\n"
+    return msj
+
+#------------------funciones agregadas Daniel ----------------------
 #------------Duplicate function-----------
 
 def scan_duplicate_inbox(path, destiny = settings['destinyPathDuplicate']):
@@ -151,17 +167,15 @@ def scan_duplicate_inbox(path, destiny = settings['destinyPathDuplicate']):
         
         if os.path.isfile(check):     
                  
-            myCursor.execute("SELECT filepath, filename, filecreation FROM duplicate where   filename = '{}' and filecreation = '{}';".format(path, file, edited))
+            myCursor.execute("SELECT filepath, filename, filecreation FROM duplicate where filename = '{}' and filecreation = '{}';".format(path, file, edited))
             result = myCursor.fetchall()
         
-            if len(result) == 0: 
+            if len(result) == 0:
                 myCursor.execute("INSERT INTO duplicate (filepath, filename, filecreation, dateduplicate) VALUES ('{}','{}','{}', current_timestamp);".format(path, file, edited) )
                 conection.commit()
                 
-                destinyfinal = f"{destiny}{os.sep}{file}"         
+                destinyfinal = f"{destiny}{os.sep}{file}"      
                 shutil.copy(check, destinyfinal)            
-                 
-                       
         
         elif os.path.isdir(check):
             destinyF = f"{settings['destinyPathDuplicate']}{os.sep}{file}"
@@ -173,52 +187,3 @@ def scan_duplicate_inbox(path, destiny = settings['destinyPathDuplicate']):
         conection.close()
         
 
-def new_scan_provider(provider):
-    folder = f"{settings['path']}{os.sep}{provider}"
-    scans = os.listdir(folder)
-    folderReview =scans.append("To Review")
-    
-    count= 0
-    mydb = connectionDb()
-    mycursor = mydb.cursor()   
-   
-    for folder in scans: 
-        
-        dir = ""     
-        mycursor.execute("SELECT document_type, provider, filename, filepath from faxes where document_type = %s and provider = %s and new = 1;", (folder, provider) )
-        result = mycursor.fetchall()
-        if len(result) != 0:
-            print(result)
-            msj = f"In Dr.{provider} folder had a new documents in the next folders: \n"          
-            
-            for row in result:  
-                
-                # print(dir)                 
-                if dir != row[0]:
-                    # if x[0].upper() == 'TO REVIEW':
-                    #     filepath = x[3].split(os.sep)[-2]
-                    #     msj += filepath         
-                    msj += f"{row[0]}:\n"                  
-                    msj += f"{row[2]}\n"                    
-                    dir = row[0]
-                   
-                elif dir ==row[0]:
-                    msj += f"{row[2]}\n"
-                    #print(x[2])
-                                
-                
-                # #if x[0].upper() != 'TO REVIEW':
-                # # count += 1   
-                # # test = x[3].split(os.sep)[-2]            
-                # # msj = f"{test}\n"
-                # # msj +=f"{x[0]}:\n"
-                # # msj += f"{count}. {x[2]}. \n"    
-
-          
-        
-    return msj
-                # if x[0].upper() == 'TO REVIEW':
-                #     print(x[3].split(os.sep)[-2])
-            
-
-print(new_scan_provider("ROSS"))
