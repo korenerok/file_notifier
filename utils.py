@@ -159,7 +159,11 @@ def scan_duplciate_inbox(path, destiny = dest):
             if len(result) == 0: 
                 myCursor.execute("INSERT INTO duplicate (filepath, filename, filecreation, dateduplicate) VALUES ('{}','{}','{}', current_timestamp);".format(path, file, edited) )
                 conection.commit()
-                destinyfinal = f"{destiny}\{file}"    
+ 
+
+                conection.close()
+                destinyfinal = f"{destiny}{os.sep}{file}"    
+
                 print("estamos guardando ")        
                 shutil.copy(check, destinyfinal)           
                        
