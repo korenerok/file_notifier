@@ -5,25 +5,17 @@ import os
 from datetime import date 
 import shutil
 
-
-
-
 config = ConfigParser()
-configfile = 'bot.conf'
-config.read(f"./{configfile}")
+config.read(f"./bot.conf")
 settings = config['SETTINGS']
-path = format(settings['path'])
-providers= settings['providers'].split(',')
-dbFaxes = settings['dbname']
-dest = settings['destinyPathDuplicate']
 
-def connectionDb(db):
+def connectionDb():
     try:
         mydb = mysql.connector.connect(
             host=settings['dbhost'],
             user=settings['dbuser'],
             password=settings['dbpassword'],
-            database=db,
+            database=settings['dbname'],
             auth_plugin="mysql_native_password" 
         )
         return mydb
@@ -92,11 +84,12 @@ def scan_folder(mydb,path,provider=None,doctype=None,level=None):
 
 def record_new_files():
     try:
-        mydb = connectionDb(dbFaxes)
+        mydb = connectionDb()
+        providers= settings['providers'].split(',')
         for section in config.sections():
             provider= section.format(['']).upper()
             if provider in providers:
-                full_path = path + os.sep + config.get(section,'folder')
+                full_path = settings['path'] + os.sep + config.get(section,'folder')
                 scan_folder(mydb,full_path,provider)
         mydb.close()
 
@@ -106,7 +99,6 @@ def record_new_files():
 
 
 
-#------------------funciones agregadas Daniel ----------------------
 #--------function move archive-------------
 def create_final_destination(path):
     today=date.today()
@@ -125,48 +117,73 @@ def is_archive_folder(path):
     """return if the last member of the path is archive folder"""
     return path.split(os.sep)[-1].upper() == "ARCHIVE"
 
+def valid_file_for_archive(filename):
+    years=[x for x in range(2022,2042)]
+    return (os.path.isfile(filename)) or (os.path.isdir(filename) and filename not in years)
+
 def categorize_archives():
     #find ARCHIVE folders
-    folderpaths=os.walk(".")
+    folderpaths=os.walk(settings['path'])
     folderpaths=[x[0] for x in folderpaths]
-    folderpaths= list(filter(is_archive_folder,folderpaths))
+    folderpaths= list(filter(is_archive_folder,folderpaths))   
     for archivefolder in folderpaths:
         archive_files(archivefolder)
 
 def archive_files(path):
     files = os.listdir(path)
     destinationFolder = create_final_destination(path)
-    for file in files:
-        if os.path.isfile(file):
-            src = f"{path}{os.sep}{file}"
-            destination= f"{destinationFolder}{os.sep}{file}"
+    for filename in files:
+        if valid_file_for_archive(filename):
+            src = f"{path}{os.sep}{filename}"
+            destination= f"{destinationFolder}{os.sep}{filename}"
             shutil.move(src, destination)
-     
+
+def count_new_files(provider):
+    mydb = connectionDb()
+    mycursor = mydb.cursor()
+    mycursor.execute("SELECT id, document_type, filename,toreview from faxes where provider = %s and new = 1;",(provider,))
+    result = mycursor.fetchall()
+    if len(result) >= 0:
+        msj = f"In Dr.{provider} folder there are {len(result)} new documents:\n"
+        for row in result:
+            if row[3]:
+                msj += f"-{row[1]}{os.sep}TO REVIEW -> {row[2]}\n"
+            else:
+                msj += f"-{row[1]} -> {row[2]}\n"
+    else:
+        msj = f"In Dr.{provider} folder there are no new documents\n"
+    return msj
+
+#------------------funciones agregadas Daniel ----------------------
 #------------Duplicate function-----------
 
-def scan_duplciate_inbox(path, destiny = dest):
+def scan_duplicate_inbox(path, destiny = settings['destinyPathDuplicate']):
     dir = os.listdir(path)
+    conection = connectionDb() 
+    myCursor = conection.cursor()   
     for file in dir:    
         check = os.path.join(path, file)    
-        edited = os.path.getmtime(check)    
-        if os.path.isfile(check):    
-            print(file)   
-            conection = connectionDb(dbFaxes) 
-            myCursor = conection.cursor()      
-            myCursor.execute("SELECT filepath, filename, filecreation FROM duplicate where filepath = '{}' and filename = '{}' and filecreation = '{}';".format(path, file, edited))
+        edited = os.path.getmtime(check)  
+        
+        if os.path.isfile(check):     
+                 
+            myCursor.execute("SELECT filepath, filename, filecreation FROM duplicate where filename = '{}' and filecreation = '{}';".format(path, file, edited))
             result = myCursor.fetchall()
         
-            if len(result) == 0: 
+            if len(result) == 0:
                 myCursor.execute("INSERT INTO duplicate (filepath, filename, filecreation, dateduplicate) VALUES ('{}','{}','{}', current_timestamp);".format(path, file, edited) )
                 conection.commit()
-                destinyfinal = f"{destiny}\{file}"    
-                print("estamos guardando ")        
-                shutil.copy(check, destinyfinal)           
-                       
+                
+                destinyfinal = f"{destiny}{os.sep}{file}"      
+                shutil.copy(check, destinyfinal)            
         
         elif os.path.isdir(check):
-            destinyF = f"{dest}\{file}"
+            destinyF = f"{settings['destinyPathDuplicate']}{os.sep}{file}"
             if not os.path.exists(destinyF):
                 os.mkdir(destinyF)        
             newPath = os.path.join(path, file)      
-            scan_duplciate_inbox(newPath, destinyF)
+            scan_duplicate_inbox(newPath, destinyF)
+            
+        conection.close()
+        
+

@@ -33,8 +33,10 @@ async def chatId(update,context):
 
 async def scheduled_tasks(context):
     utils.record_new_files()
-    utils.scan_archive(scanPath)
-    utils.scan_duplciate_inbox(inboxPath)
+    utils.categorize_archives()
+    utils.scan_duplicate_inbox(inboxPath)
+    
+
 
 
 def main():
