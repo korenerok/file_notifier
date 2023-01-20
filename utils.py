@@ -2,8 +2,11 @@ from datetime import datetime
 import mysql.connector 
 from configparser import ConfigParser
 import os 
-from datetime import date 
+from datetime import date, time
 import shutil
+import win32print
+import win32api
+
 
 config = ConfigParser()
 config.read(f"./bot.conf")
@@ -157,6 +160,22 @@ def count_new_files(provider):
 #------------------funciones agregadas Daniel ----------------------
 #------------Duplicate function-----------
 
+# def add_duplicates(filepath, filename)
+
+def scan_duplicate():
+    path = settings['inboxPath']
+    print('aqui')
+    files = os.listdir(path)    
+    for file in files: 
+        check = f"{path}{os.sep}{file}"
+        if os.path.isfile(check): 
+            print(check,"->", file)
+            
+            
+        
+    
+scan_duplicate()
+
 def scan_duplicate_inbox(path, destiny = settings['destinyPathDuplicate']):
     dir = os.listdir(path)
     conection = connectionDb() 
@@ -186,4 +205,39 @@ def scan_duplicate_inbox(path, destiny = settings['destinyPathDuplicate']):
             
         conection.close()
         
+        
+def folder_to_printer(path):
+    check = path.split(os.sep)[-1].upper()
+    provider = path.split(os.sep)[-2].upper()    
+    if check in settings['printerFolders'] and provider in settings['providers']:
+        return check
+
+def scan_print_files(path):
+    files = os.listdir(path)
+    for file in files:
+        if file not in settings['folders_to_skip'] and file not in settings['files_to_ignore']:  
+            file = f"{path}{os.sep}{file}"
+            if os.path.isfile(file):
+                destiny = f"{path}{os.sep}{'TO REVIEW'}"                
+                if not destiny:
+                    os.mkdir(destiny)
+                win32api.ShellExecute(0, "print", file , None, ".", 0)
+                time.sleep(25)
+                shutil.move(file, destiny)
+                # realizar el query 
+                
+            else:
+                msj = "I detected a Folder to print"
+                return msj
+        
+    
+def print_files ():
+    win32print.SetDefaultPrinter(settings['printer'])
+    folderpaths=os.walk(settings['path'])    
+    folderpaths=[x[0] for x in folderpaths]
+    folderpaths= list(filter(folder_to_printer,folderpaths))       
+    for folder in folderpaths:
+        scan_print_files(folder)   
+    
+
 
