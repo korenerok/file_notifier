@@ -144,15 +144,23 @@ def archive_files(path):
 def count_new_files(provider):
     mydb = connectionDb()
     mycursor = mydb.cursor()
-    mycursor.execute("SELECT id, document_type, filename,toreview from faxes where provider = %s and new = 1;",(provider,))
+    mycursor.execute("SELECT id, document_type, filename,toreview from faxes where provider = %s and new = 1 order by document_type,filename asc;",(provider,))
     result = mycursor.fetchall()
-    if len(result) >= 0:
+    if len(result) > 0:
+        files_to_update=[]
+        document_type=None
         msj = f"In Dr.{provider} folder there are {len(result)} new documents:\n"
         for row in result:
+            files_to_update.append((str(row[0]), ))
+            if row[1]!=document_type:
+                msj+=f"{row[1]}:\n"
+                document_type=row[1]
             if row[3]:
-                msj += f"-{row[1]}{os.sep}TO REVIEW -> {row[2]}\n"
+                msj += f"{row[2]}(TO REVIEW)\n"
             else:
-                msj += f"-{row[1]} -> {row[2]}\n"
+                msj += f"{row[2]}\n"
+        mycursor.executemany("UPDATE faxes SET new = 0 WHERE id = %s",files_to_update)
+        mydb.commit()
     else:
         msj = f"In Dr.{provider} folder there are no new documents\n"
     return msj
@@ -175,15 +183,15 @@ def scan_duplicate():
             
         
     
-scan_duplicate()
+#scan_duplicate()
 
 def scan_duplicate_inbox(path, destiny = settings['destinyPathDuplicate']):
     dir = os.listdir(path)
-    conection = connectionDb() 
-    myCursor = conection.cursor()   
-    for file in dir:    
-        check = os.path.join(path, file)    
-        edited = os.path.getmtime(check)  
+    conection = connectionDb()
+    myCursor = conection.cursor()
+    for file in dir:
+        check = os.path.join(path, file)
+        edited = os.path.getmtime(check)
         
         if os.path.isfile(check):     
                  
@@ -242,3 +250,4 @@ def print_files ():
     
 
 
+#print(count_new_files("ROSS"))
