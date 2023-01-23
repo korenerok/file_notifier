@@ -168,52 +168,63 @@ def count_new_files(provider):
 #------------------funciones agregadas Daniel ----------------------
 #------------Duplicate function-----------
 
-#def add_duplicates(filepath, filename):
-    
-
-def scan_duplicate():
-    path = settings['inboxPath']
-    print('aqui')
-    files = os.listdir(path)    
-    for file in files: 
-        check = f"{path}{os.sep}{file}"
-        if os.path.isfile(check): 
-            print(check,"->", file)
+def checking_proccesed_duplciates(mydb,path, filesInFolder):    
+    myCursor = mydb.cursor()
+    myCursor.execute("SELECT filename FROM duplicate where filepath = %s and processed_date IS NULL", (path,))
+    filesNotProcessed = [x[0] for x in myCursor.fetchall()]
+    filesThatWereProcessed =list(filter(lambda x: not_inside_list(x,filesInFolder),filesNotProcessed))
+    now=datetime.now()
+    filesThatWereProcessed = list(map(lambda x:(now,path,x),filesThatWereProcessed))
+    for file in filesThatWereProcessed:
+        myCursor.execute("UPDATE duplicate SET processed_date = %s WHERE filepath = %s AND filename = %s",file)
+        mydb.commit()
+    return len(filesThatWereProcessed)
+        
+def add_duplicates(mydb, filepath, filenames):
+    myCursor = mydb.cursor()
+    querySQL = " INSERT INTO duplicate (filepath, filename, dateduplicate) VALUES (%s,%s,%s)"
+    now = datetime.now()   
+    filenames = list(map(lambda x:(filepath,x,now), filenames))   
+    copy_files(filenames)
+    myCursor.executemany(querySQL, filenames)
+    mydb.commit()
+        
+   
+def copy_files(movelist):
+    for item in movelist:
+        src = f"{item[0]}{os.sep}{item[1]}"
+        destiny = f"{settings['destinyPathDuplicate']}{os.sep}{item[1]}"
+        shutil.copy(src, destiny)
+def duplicate():
+    try:
+        mydb = connectionDb()
+        myCursor =mydb.cursor(buffered=True)
+        path = settings['inboxPath']    
+        files = os.listdir(path) 
+        files= list(filter(lambda x: filter_system_files(x,path),files)) 
+        checking_proccesed_duplciates(mydb, path, files)   
+        fileNameList=[] 
+        for file in files:
+            filePath = f"{path}{os.sep}{file}"
+            if os.path.isfile(filePath):
+                fileNameList.append(file)
+        myCursor.execute("SELECT filename FROM duplicate WHERE filepath = %s AND processed_date IS NULL",(path,))                
+        filesInFolder=[x[0] for x in myCursor.fetchall()]                
+        fileNameList = list(filter(lambda x: not_inside_list(x,filesInFolder), fileNameList ))
+        
+        if len(fileNameList) > 0:
+            add_duplicates(mydb, path, fileNameList)
+        mydb.close()
+        
+              
+    except OSError:
+      return OSError
             
             
         
     
-#scan_duplicate()
+duplicate()
 
-def scan_duplicate_inbox(path, destiny = settings['destinyPathDuplicate']):
-    dir = os.listdir(path)
-    conection = connectionDb()
-    myCursor = conection.cursor()
-    for file in dir:
-        check = os.path.join(path, file)
-        edited = os.path.getmtime(check)
-        
-        if os.path.isfile(check):     
-                 
-            myCursor.execute("SELECT filepath, filename, filecreation FROM duplicate where filename = '{}' and filecreation = '{}';".format(path, file, edited))
-            result = myCursor.fetchall()
-        
-            if len(result) == 0:
-                myCursor.execute("INSERT INTO duplicate (filepath, filename, filecreation, dateduplicate) VALUES ('{}','{}','{}', current_timestamp);".format(path, file, edited) )
-                conection.commit()
-                
-                destinyfinal = f"{destiny}{os.sep}{file}"      
-                shutil.copy(check, destinyfinal)            
-        
-        elif os.path.isdir(check):
-            destinyF = f"{settings['destinyPathDuplicate']}{os.sep}{file}"
-            if not os.path.exists(destinyF):
-                os.mkdir(destinyF)        
-            newPath = os.path.join(path, file)      
-            scan_duplicate_inbox(newPath, destinyF)
-            
-        conection.close()
-        
         
 def folder_to_printer(path):
     check = path.split(os.sep)[-1].upper()
@@ -223,28 +234,28 @@ def folder_to_printer(path):
 
 def scan_print_files(path):
     files = os.listdir(path)
+    files= list(filter(lambda x: filter_system_files(x,path),files))
     for file in files:
-        if file not in settings['folders_to_skip'] and file not in settings['files_to_ignore']:  
-            file = f"{path}{os.sep}{file}"
-            if os.path.isfile(file):
-                destiny = f"{path}{os.sep}{'TO REVIEW'}"                
-                if not destiny:
-                    os.mkdir(destiny)
-                win32api.ShellExecute(0, "print", file , None, ".", 0)
-                time.sleep(25)
-                shutil.move(file, destiny)
-                # realizar el query 
-                
-            else:
-                msj = "I detected a Folder to print"
-                return msj
+        file = f"{path}{os.sep}{file}"
+        if os.path.isfile(file):
+            destiny = f"{path}{os.sep}{'TO REVIEW'}"                
+            if not destiny:
+                os.mkdir(destiny)
+            win32api.ShellExecute(0, "print", file , None, ".", 0)
+            time.sleep(25)
+            shutil.move(file, destiny)
+            # realizar el query 
+            
+        else:
+            msj = "I detected a Folder to print"
+            return msj
         
     
 def print_files ():
     win32print.SetDefaultPrinter(settings['printer'])
     folderpaths=os.walk(settings['path'])    
     folderpaths=[x[0] for x in folderpaths]
-    folderpaths= list(filter(folder_to_printer,folderpaths))       
+    folderpaths= list(filter(folder_to_printer,folderpaths))  
     for folder in folderpaths:
         scan_print_files(folder)   
     
