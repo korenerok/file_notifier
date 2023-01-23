@@ -160,7 +160,8 @@ def count_new_files(provider):
 #------------------funciones agregadas Daniel ----------------------
 #------------Duplicate function-----------
 
-# def add_duplicates(filepath, filename)
+#def add_duplicates(filepath, filename):
+    
 
 def scan_duplicate():
     path = settings['inboxPath']
