@@ -45,7 +45,7 @@ async def chatId(update,context):
 
 async def scheduled_tasks(context):
     duplicate =  utils.duplicate()
-    if duplicate != None:
+    if duplicate is not None:
         await context.bot.send_message(
             chat_id = config['SETTINGS']['response_id'],
             text = truncated_msg(duplicate)
@@ -53,14 +53,13 @@ async def scheduled_tasks(context):
     utils.record_new_files()
     utils.categorize_archives()    
     printer = utils.print_files()
-    if printer != None:
+    if printer is not None:
         await context.bot.send_message(
             chat_id = config['SETTINGS']['response_id'],
             text = truncated_msg(printer)
-        )        
+        )    
     
-    
-async def count_new_files_roos(update,context):
+async def count_new_files_ross(update,context):
     msg = utils.count_new_files("ROSS")
     msg = truncated_msg(msg)
     await update.message.reply_text(msg)
@@ -79,10 +78,11 @@ async def count_new_files_garonzik(update,context):
     msg = utils.count_new_files("GARONZIK")
     msg = truncated_msg(msg)
     await update.message.reply_text(msg)
-    
-    
-    
 
+async def count_all_new_files(update,context):
+    msg = utils.count_all_new_files()
+    msg = truncated_msg(msg)
+    await update.message.reply_text(msg)
 
 def main():
     """Start the bot"""
@@ -92,11 +92,12 @@ def main():
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('help', help))
     application.add_handler(CommandHandler('helpme', help))
-    application.add_handler(CommandHandler('ross', count_new_files_roos))
+    application.add_handler(CommandHandler('all', count_all_new_files))
+    application.add_handler(CommandHandler('ross', count_new_files_ross))
     application.add_handler(CommandHandler('anderson', count_new_files_anderson))
     application.add_handler(CommandHandler('cano', count_new_files_cano))
     application.add_handler(CommandHandler('garonzik', count_new_files_garonzik))
-    application.job_queue.run_repeating(scheduled_tasks, interval=100, first = time(hour=6, minute=0, second=0, tzinfo=pytz.timezone('US/Eastern')), last= time(hour=19, minute=0, second=0, tzinfo=pytz.timezone('US/Eastern')))
+    application.job_queue.run_repeating(scheduled_tasks, interval=120, first = time(hour=6, minute=0, second=0, tzinfo=pytz.timezone('US/Eastern')), last= time(hour=19, minute=0, second=0, tzinfo=pytz.timezone('US/Eastern')))
     print('Bot started')
     application.run_polling()
 

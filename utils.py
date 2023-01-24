@@ -180,6 +180,7 @@ def scan_print_files(path):
     files = os.listdir(path)
     files= list(filter(lambda x: filter_system_files(x,path),files))
     printed_files=[] 
+    error_msj=""
     for filename in files:
         file = f"{path}{os.sep}{filename}"
         if os.path.isfile(file):
@@ -191,24 +192,29 @@ def scan_print_files(path):
             shutil.move(file, destination)
             printed_files.append((destination,datetime.now(),filename,path))
         elif os.path.isdir(file):
-            return f"I detect a folder in {path} with the name {filename}  please check"
+            error_msj+= f"Detected folder in {path} with the name {filename}. Please check.\n"
     mydb = connectionDb()
     mycursor = mydb.cursor()
     mycursor.executemany("UPDATE faxes set toreview = 1, filepath = %s, processed_date=%s WHERE filename= %s AND filepath= %s",(printed_files))
     mydb.commit()
+    if len(error_msj) > 0:
+        return error_msj
+
 
 def print_files():
     win32print.SetDefaultPrinter(settings['printer'])
     folderpaths=os.walk(settings['path'])
     folderpaths=[x[0] for x in folderpaths]
     folderpaths= list(filter(is_in_print_folders,folderpaths))
+    msj=""
     for folder in folderpaths:        
-       return scan_print_files(folder)
+       result=scan_print_files(folder)
+       if result is not None:
+           msj+=result
+    if len(msj)>0:
+        return msj
 
-#------------------funciones agregadas por Daniel aún por revisión ----------------------
-#------------Duplicate function-----------
-
-def checking_proccesed_duplciates(mydb,path, filesInFolder):    
+def checking_proccesed_duplicates(mydb,path, filesInFolder):    
     myCursor = mydb.cursor()
     myCursor.execute("SELECT filename FROM duplicate where filepath = %s and processed_date IS NULL", (path,))
     filesNotProcessed = [x[0] for x in myCursor.fetchall()]
@@ -243,74 +249,29 @@ def duplicate():
         path = settings['inboxPath']    
         files = os.listdir(path) 
         files= list(filter(lambda x: filter_system_files(x,path),files)) 
-        checking_proccesed_duplciates(mydb, path, files)   
+        checking_proccesed_duplicates(mydb, path, files)
         fileNameList=[] 
+        error_msj=""
         for file in files:
             filePath = f"{path}{os.sep}{file}"
             if os.path.isfile(filePath):
                 fileNameList.append(file)
             elif os.path.isdir(filePath):
-                return f"I detect a folder in \\xr-fs1\Shares\INT_ROSS\FAX\INBOX with the name {file}  please check"
-        myCursor.execute("SELECT filename FROM duplicate WHERE filepath = %s AND processed_date IS NULL",(path,))                
-        filesInFolder=[x[0] for x in myCursor.fetchall()]                
-        fileNameList = list(filter(lambda x: not_inside_list(x,filesInFolder), fileNameList ))
-        
+                error_msj+=f"Detected folder in {path} with the name {file}. Please check.\n"
+        myCursor.execute("SELECT filename FROM duplicate WHERE filepath = %s AND processed_date IS NULL",(path,))
+        filesInFolder=[x[0] for x in myCursor.fetchall()]
+        fileNameList = list(filter(lambda x: not_inside_list(x,filesInFolder), fileNameList))
+
         if len(fileNameList) > 0:
             add_duplicates(mydb, path, fileNameList)
         mydb.close()
-        
-              
+        if len(error_msj) > 0:
+            return error_msj
     except OSError:
       return OSError
 
-def count_all():
-    providerList = providers
-    print(providerList)
-    # mydb = connectionDb()
-    # mycursor = mydb.cursor()
-    # mycursor.execute("SELECT id, provider, document_type, filename,toreview from faxes where new = 1 order by provider,document_type,filename asc;")
-    # result = mycursor.fetchall()
-    # if len(result)>0:
-    #     files_to_update = []
-    #     provider = None
-    #     document_type = None 
-    #     msj = f"In all folder have {len(result)} new documents: \n "
-    #     for row in result:
-    #         files_to_update.append((str(row[0]),))
-    #         if row[1]!= provider:
-    #             msj += f"\nDr. {row[1]}'s folder \n"                                
-    #             provider = row[1]                
-    #             if row[2] != document_type:                   
-    #                 msj += f"\n{row[2]}:\n"      
-    #                 document_type = row[2]
-    #                 if row[4]:
-    #                     msj += f"{row[3]} (TO REVIEW)\n"
-    #                 else:
-    #                      msj += f"{row[3]}\n"
-    #         else:
-    #             if row[4]:
-    #                     msj += f"{row[3]} (TO REVIEW)\n"
-    #             else:
-    #                 msj += f"{row[3]}\n"
-    #     else:
-    #         if row[2] != document_type:
-                            
-    #             msj += f"\n{row[2]}:\n"      
-    #             document_type = row[2]
-    #             if row[4]:
-    #                 msj += f"{row[3]} (TO REVIEW)\n"
-    #             else:
-    #                 msj += f"{row[3]}\n" 
-    #         else:
-    #             if row[4]:
-    #                     msj += f"{row[3]} (TO REVIEW)\n"
-    #             else:
-    #                 msj += f"{row[3]}\n"
-            
-                
-                   
-                
-                
-    #print(msj)
-    
-count_all()
+def count_all_new_files():
+    msj=""
+    for provider in providers:
+        msj+=count_new_files(provider)
+    return msj
