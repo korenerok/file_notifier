@@ -2,10 +2,11 @@ from datetime import datetime
 import mysql.connector 
 from configparser import ConfigParser
 import os 
-from datetime import date, time
+from datetime import date
 import shutil
 import win32print
 import win32api
+import time
 
 
 config = ConfigParser()
@@ -186,9 +187,11 @@ def scan_print_files(path):
             if not os.path.exists(destination):
                 os.mkdir(destination)
             win32api.ShellExecute(0, "print", file , None, ".", 0)
-            time.sleep(25)
+            time.sleep(15)
             shutil.move(file, destination)
             printed_files.append((destination,datetime.now(),filename,path))
+        elif os.path.isdir(file):
+            return f"I detect a folder in {path} with the name {filename}  please check"
     mydb = connectionDb()
     mycursor = mydb.cursor()
     mycursor.executemany("UPDATE faxes set toreview = 1, filepath = %s, processed_date=%s WHERE filename= %s AND filepath= %s",(printed_files))
@@ -199,8 +202,8 @@ def print_files():
     folderpaths=os.walk(settings['path'])
     folderpaths=[x[0] for x in folderpaths]
     folderpaths= list(filter(is_in_print_folders,folderpaths))
-    for folder in folderpaths:
-        scan_print_files(folder)
+    for folder in folderpaths:        
+       return scan_print_files(folder)
 
 #------------------funciones agregadas por Daniel aún por revisión ----------------------
 #------------Duplicate function-----------
@@ -246,6 +249,8 @@ def duplicate():
             filePath = f"{path}{os.sep}{file}"
             if os.path.isfile(filePath):
                 fileNameList.append(file)
+            elif os.path.isdir(filePath):
+                return f"I detect a folder in \\xr-fs1\Shares\INT_ROSS\FAX\INBOX with the name {file}  please check"
         myCursor.execute("SELECT filename FROM duplicate WHERE filepath = %s AND processed_date IS NULL",(path,))                
         filesInFolder=[x[0] for x in myCursor.fetchall()]                
         fileNameList = list(filter(lambda x: not_inside_list(x,filesInFolder), fileNameList ))
@@ -258,5 +263,7 @@ def duplicate():
     except OSError:
       return OSError
 
-#duplicate()
-#print(count_new_files("ROSS"))
+def count_all():
+    mydb = connectionDb()
+    mycursor = mydb.cursor()
+    mycursor.execute("SELECT id, provider, document_type, filename,toreview from faxes where new = 1 order by document_type,filename asc;")
