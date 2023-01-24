@@ -264,6 +264,53 @@ def duplicate():
       return OSError
 
 def count_all():
-    mydb = connectionDb()
-    mycursor = mydb.cursor()
-    mycursor.execute("SELECT id, provider, document_type, filename,toreview from faxes where new = 1 order by document_type,filename asc;")
+    providerList = providers
+    print(providerList)
+    # mydb = connectionDb()
+    # mycursor = mydb.cursor()
+    # mycursor.execute("SELECT id, provider, document_type, filename,toreview from faxes where new = 1 order by provider,document_type,filename asc;")
+    # result = mycursor.fetchall()
+    # if len(result)>0:
+    #     files_to_update = []
+    #     provider = None
+    #     document_type = None 
+    #     msj = f"In all folder have {len(result)} new documents: \n "
+    #     for row in result:
+    #         files_to_update.append((str(row[0]),))
+    #         if row[1]!= provider:
+    #             msj += f"\nDr. {row[1]}'s folder \n"                                
+    #             provider = row[1]                
+    #             if row[2] != document_type:                   
+    #                 msj += f"\n{row[2]}:\n"      
+    #                 document_type = row[2]
+    #                 if row[4]:
+    #                     msj += f"{row[3]} (TO REVIEW)\n"
+    #                 else:
+    #                      msj += f"{row[3]}\n"
+    #         else:
+    #             if row[4]:
+    #                     msj += f"{row[3]} (TO REVIEW)\n"
+    #             else:
+    #                 msj += f"{row[3]}\n"
+    #     else:
+    #         if row[2] != document_type:
+                            
+    #             msj += f"\n{row[2]}:\n"      
+    #             document_type = row[2]
+    #             if row[4]:
+    #                 msj += f"{row[3]} (TO REVIEW)\n"
+    #             else:
+    #                 msj += f"{row[3]}\n" 
+    #         else:
+    #             if row[4]:
+    #                     msj += f"{row[3]} (TO REVIEW)\n"
+    #             else:
+    #                 msj += f"{row[3]}\n"
+            
+                
+                   
+                
+                
+    #print(msj)
+    
+count_all()
