@@ -11,6 +11,9 @@ import win32api
 config = ConfigParser()
 config.read(f"./bot.conf")
 settings = config['SETTINGS']
+print_folders=settings['printerFolders'].split(',')
+providers= settings['providers'].split(',')
+
 
 def connectionDb():
     try:
@@ -88,7 +91,6 @@ def scan_folder(mydb,path,provider=None,doctype=None,level=None):
 def record_new_files():
     try:
         mydb = connectionDb()
-        providers= settings['providers'].split(',')
         for section in config.sections():
             provider= section.format(['']).upper()
             if provider in providers:
@@ -165,7 +167,42 @@ def count_new_files(provider):
         msj = f"In Dr.{provider} folder there are no new documents\n"
     return msj
 
-#------------------funciones agregadas Daniel ----------------------
+## To be tested 
+
+def is_in_print_folders(path):
+    folder_path=path.split(os.sep)
+    document_type = folder_path[-1].upper()
+    provider = folder_path[-2].upper()
+    return document_type in print_folders and provider in providers
+
+def scan_print_files(path):
+    files = os.listdir(path)
+    files= list(filter(lambda x: filter_system_files(x,path),files))
+    printed_files=[] 
+    for filename in files:
+        file = f"{path}{os.sep}{filename}"
+        if os.path.isfile(file):
+            destination = f"{path}{os.sep}{'TO REVIEW'}"                
+            if not os.path.exists(destination):
+                os.mkdir(destination)
+            win32api.ShellExecute(0, "print", file , None, ".", 0)
+            time.sleep(25)
+            shutil.move(file, destination)
+            printed_files.append((destination,datetime.now(),filename,path))
+    mydb = connectionDb()
+    mycursor = mydb.cursor()
+    mycursor.executemany("UPDATE faxes set toreview = 1, filepath = %s, processed_date=%s WHERE filename= %s AND filepath= %s",(printed_files))
+    mydb.commit()
+
+def print_files():
+    win32print.SetDefaultPrinter(settings['printer'])
+    folderpaths=os.walk(settings['path'])
+    folderpaths=[x[0] for x in folderpaths]
+    folderpaths= list(filter(is_in_print_folders,folderpaths))
+    for folder in folderpaths:
+        scan_print_files(folder)
+
+#------------------funciones agregadas por Daniel aún por revisión ----------------------
 #------------Duplicate function-----------
 
 def checking_proccesed_duplciates(mydb,path, filesInFolder):    
@@ -195,6 +232,7 @@ def copy_files(movelist):
         src = f"{item[0]}{os.sep}{item[1]}"
         destiny = f"{settings['destinyPathDuplicate']}{os.sep}{item[1]}"
         shutil.copy(src, destiny)
+
 def duplicate():
     try:
         mydb = connectionDb()
@@ -219,46 +257,6 @@ def duplicate():
               
     except OSError:
       return OSError
-            
-            
-        
-    
-duplicate()
 
-        
-def folder_to_printer(path):
-    check = path.split(os.sep)[-1].upper()
-    provider = path.split(os.sep)[-2].upper()    
-    if check in settings['printerFolders'] and provider in settings['providers']:
-        return check
-
-def scan_print_files(path):
-    files = os.listdir(path)
-    files= list(filter(lambda x: filter_system_files(x,path),files))
-    for file in files:
-        file = f"{path}{os.sep}{file}"
-        if os.path.isfile(file):
-            destiny = f"{path}{os.sep}{'TO REVIEW'}"                
-            if not destiny:
-                os.mkdir(destiny)
-            win32api.ShellExecute(0, "print", file , None, ".", 0)
-            time.sleep(25)
-            shutil.move(file, destiny)
-            # realizar el query 
-            
-        else:
-            msj = "I detected a Folder to print"
-            return msj
-        
-    
-def print_files ():
-    win32print.SetDefaultPrinter(settings['printer'])
-    folderpaths=os.walk(settings['path'])    
-    folderpaths=[x[0] for x in folderpaths]
-    folderpaths= list(filter(folder_to_printer,folderpaths))  
-    for folder in folderpaths:
-        scan_print_files(folder)   
-    
-
-
+#duplicate()
 #print(count_new_files("ROSS"))
