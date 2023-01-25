@@ -62,27 +62,32 @@ async def scheduled_tasks(context):
 async def count_new_files_ross(update,context):
     msg = utils.count_new_files("ROSS")
     msg = truncated_msg(msg)
-    await update.message.reply_text(msg)
+    await update.message.reply_html(msg)
     
 async def count_new_files_anderson(update,context):
     msg = utils.count_new_files("ANDERSON")
     msg = truncated_msg(msg)
-    await update.message.reply_text(msg)
+    await update.message.reply_html(msg)
     
 async def count_new_files_cano(update,context):
     msg = utils.count_new_files("CANO")
     msg = truncated_msg(msg)
-    await update.message.reply_text(msg)
+    await update.message.reply_html(msg)
     
 async def count_new_files_garonzik(update,context):
     msg = utils.count_new_files("GARONZIK")
     msg = truncated_msg(msg)
-    await update.message.reply_text(msg)
+    await update.message.reply_html(msg)
 
 async def count_all_new_files(update,context):
     msg = utils.count_all_new_files()
     msg = truncated_msg(msg)
-    await update.message.reply_text(msg)
+    await update.message.reply_html(msg)
+
+async def count_all_new_files_without_update_new_flag(update,context):
+    msg = utils.count_all_new_files(False)
+    msg = truncated_msg(msg)
+    await update.message.reply_html(msg)
 
 def main():
     """Start the bot"""
@@ -93,6 +98,7 @@ def main():
     application.add_handler(CommandHandler('help', help))
     application.add_handler(CommandHandler('helpme', help))
     application.add_handler(CommandHandler('all', count_all_new_files))
+    application.add_handler(CommandHandler('all_for_test', count_all_new_files_without_update_new_flag))
     application.add_handler(CommandHandler('ross', count_new_files_ross))
     application.add_handler(CommandHandler('anderson', count_new_files_anderson))
     application.add_handler(CommandHandler('cano', count_new_files_cano))
