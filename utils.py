@@ -156,17 +156,17 @@ def count_new_files(provider):
         for row in result:
             files_to_update.append((str(row[0]), ))
             if row[1]!=document_type:
-                msj+=f"    {(row[1].replace('_','',1)).replace('_',' ')}:\n"
+                msj+=f"       {(row[1].replace('_','',1)).replace('_',' ')}:\n"
                 document_type=row[1]
             
             if row[3]:
-                msj += f"       {row[2]} (TO REVIEW)\n"
+                msj += f"                {row[2]} (TO REVIEW)\n"
             else:
-                msj += f"       {row[2]}\n"
+                msj += f"                {row[2]}\n"
         mycursor.executemany("UPDATE faxes SET new = 0 WHERE id = %s",files_to_update)
         mydb.commit()
     else:
-        msj = f"{provider} no new documents\n"
+        msj = f"{provider}: no new documents.\n"
     return msj
 
 ## To be tested 
