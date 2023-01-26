@@ -1,28 +1,15 @@
 import os 
-import pdf2jpg
-from pdf2jpg import pdf2jpg
-import os
-import sys
 from pdf2image import convert_from_path
 # path = "test"
 lista = os.listdir('.')
+poppler_path = r"C:\Users\Daniel\Documents\projects\all-python\bots\actual reports\file_notifier\poppler-23.01.0\Library\bin"
+pdf_path = f".{os.sep}test_pdf.pdf"
+saving_folder = f".{os.sep}destinyTest"
 
-# for file in lista:
-#   filepath = f"{path}{os.sep}{file}"
-#   if os.path.isfile(filepath):
-#     #print(file)
-#     images = convert_from_path(filepath)
-#     print(len(images))
+pages = convert_from_path(pdf_path=pdf_path, poppler_path=poppler_path)
+c = 1
 
-print(os.path.isfile('./test_pdf.pdf'))
-
-print(os.path.isdir('./destinationTest'))
-  
-source = 'test_pdf.pdf'
-destiny = './destinationTest/test_pdf.jpg'
-# Final = pdf2jpg.convert_pdf2jpg(  source , destiny )
-# print(Final)
-
-images = convert_from_path('test_pdf.pdf', 500) #Read pdf file
-for i in images:
-  i.save('out.jpg', 'JPEG') 
+for page in pages:
+  img_name = f"img-{c}.jpeg"
+  page.save(os.path.join(saving_folder,img_name),"JPEG")
+  c+=1
