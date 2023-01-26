@@ -128,7 +128,6 @@ def valid_file_for_archive(filename):
     return (os.path.isfile(filename)) or (os.path.isdir(filename) and filename not in years)
 
 def categorize_archives():
-    #find ARCHIVE folders
     folderpaths=os.walk(settings['path'])
     folderpaths=[x[0] for x in folderpaths]
     folderpaths= list(filter(is_archive_folder,folderpaths))   
@@ -144,7 +143,7 @@ def archive_files(path):
             destination= f"{destinationFolder}{os.sep}{filename}"
             shutil.move(src, destination)
 
-def count_new_files(provider):
+def count_new_files(provider,update=True):
     mydb = connectionDb()
     mycursor = mydb.cursor()
     mycursor.execute("SELECT id, document_type, filename,toreview from faxes where provider = %s and new = 1 order by document_type,filename asc;",(provider,))
@@ -152,10 +151,11 @@ def count_new_files(provider):
     if len(result) > 0:
         files_to_update=[]
         document_type=None
-        msj = f"{provider} ({len(result)} documents):\n"
+        msj = f"<b>•{provider}</b> ({len(result)} documents):\n"
         for row in result:
             files_to_update.append((str(row[0]), ))
             if row[1]!=document_type:
+<<<<<<< HEAD
                 msj+=f"       {(row[1].replace('_','',1)).replace('_',' ')}:\n"
                 document_type=row[1]
             
@@ -167,9 +167,21 @@ def count_new_files(provider):
         mydb.commit()
     else:
         msj = f"{provider}: no new documents.\n"
+=======
+                msj+=f"    <b>•{(row[1].replace('_','',1)).replace('_',' ')}:</b>\n"
+                document_type=row[1]
+            
+            if row[3]:
+                msj += f"       •{row[2]} (TO REVIEW)\n"
+            else:
+                msj += f"       •{row[2]}\n"
+        if update:
+            mycursor.executemany("UPDATE faxes SET new = 0 WHERE id = %s",files_to_update)
+            mydb.commit()
+    else:
+        msj = f"<b>•{provider}</b> no new documents\n"
+>>>>>>> f19578943ac3fe6560545bb5e0bdebab3898563e
     return msj
-
-## To be tested 
 
 def is_in_print_folders(path):
     folder_path=path.split(os.sep)
@@ -200,7 +212,6 @@ def scan_print_files(path):
     mydb.commit()
     if len(error_msj) > 0:
         return error_msj
-
 
 def print_files():
     win32print.SetDefaultPrinter(settings['printer'])
@@ -271,8 +282,8 @@ def duplicate():
     except OSError:
       return OSError
 
-def count_all_new_files():
+def count_all_new_files(update_new_flag=True):
     msj=""
     for provider in providers:
-        msj+= f"{count_new_files(provider)}"
+        msj+= count_new_files(provider,update_new_flag)
     return msj
