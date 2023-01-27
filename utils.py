@@ -299,7 +299,10 @@ def convert_pdf():
   path = config['SETTINGS']['destinyPathDuplicate']
   folder = os.listdir(path)
   for filename in folder:
-    file = f"{path}{os.sep}{filename}"
-    if os.path.isfile(file):
-      check_files(file, filename)
+    if filename.endswith('.pdf'):    
+      file = f"{path}{os.sep}{filename}"    
+      if os.path.isfile(file):
+        check_files(file, filename)
+    else: 
+      return f"I detected a problem convert the files one is not {filename} is not a pdf file"
       
