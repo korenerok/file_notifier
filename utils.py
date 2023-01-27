@@ -6,7 +6,9 @@ from datetime import date
 import shutil
 import win32print
 import win32api
+from pdf2image import convert_from_path
 import time
+
 
 
 config = ConfigParser()
@@ -156,18 +158,18 @@ def count_new_files(provider,update=True):
             files_to_update.append((str(row[0]), ))
             if row[1]!=document_type:
 
-                msj+=f"    <b>•{(row[1].replace('_','',1)).replace('_',' ')}:</b>\n"
+                msj+=f"    {(row[1].replace('_','',1)).replace('_',' ')}:</b>\n"
                 document_type=row[1]
             
             if row[3]:
-                msj += f"       •{row[2]} (TO REVIEW)\n"
+                msj += f"        •{row[2]} (TO REVIEW)\n"
             else:
-                msj += f"       •{row[2]}\n"
+                msj += f"        •{row[2]}\n"
         if update:
             mycursor.executemany("UPDATE faxes SET new = 0 WHERE id = %s",files_to_update)
             mydb.commit()
     else:
-        msj = f"<b>•{provider}</b> no new documents\n"
+        msj = f"•{provider} no new documents\n"
 
     return msj
 
@@ -275,3 +277,29 @@ def count_all_new_files(update_new_flag=True):
     for provider in providers:
         msj+= count_new_files(provider,update_new_flag)
     return msj
+
+
+
+def check_files(filepath, filename):
+  poppler_path = config['SETTINGS']['poopler_path']
+  saving_folder = f"{config['SETTINGS']['convertedPathDuplicate']}{os.sep}{filename}"    
+  os.mkdir(saving_folder)
+  pages = convert_from_path(pdf_path=filepath, poppler_path=poppler_path)
+  c = 1
+  for page in pages:
+    img_name = f"{filename}-{c}.jpeg"
+    page.save(os.path.join(saving_folder,img_name),"JPEG")
+    c+=1
+  shutil.move(filepath, saving_folder)
+  
+
+
+
+def convert_pdf():  
+  path = config['SETTINGS']['destinyPathDuplicate']
+  folder = os.listdir(path)
+  for filename in folder:
+    file = f"{path}{os.sep}{filename}"
+    if os.path.isfile(file):
+      check_files(file, filename)
+      

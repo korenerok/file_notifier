@@ -12,6 +12,8 @@ config.read(f"./{configfile}")
 token = config['SETTINGS_BOT']['token']
 scanPath = config['SETTINGS']['path']
 inboxPath = config['SETTINGS']['inboxPath']
+settings = config['SETTINGS']
+providers= config['SETTINGS']['providers'].split(',')
 
 def truncated_msg(text):
     if len(text) >= 4000:
@@ -58,7 +60,30 @@ async def scheduled_tasks(context):
             chat_id = config['SETTINGS']['response_id'],
             text = truncated_msg(printer)
         )    
-    
+
+async def scheduled_msj(context):
+    for section in config.sections():
+        provider= section.format(['']).upper()
+        if provider in providers:
+            chat_id = config[provider]['chat_id']
+            msg = utils.count_new_files(provider)
+            if msg != f"•{provider} no new documents\n":                
+                await context.bot.send_message(
+                chat_id = chat_id,
+                text = truncated_msg(msg)
+                )
+
+async def scheduled_msj_once(context):
+    for section in config.sections():
+        provider= section.format(['']).upper()
+        if provider in providers:
+            chat_id = config[provider]['chat_id']
+            msg = utils.count_new_files(provider)                    
+            await context.bot.send_message(
+            chat_id = chat_id,
+            text = truncated_msg(msg)
+            )
+       
 async def count_new_files_ross(update,context):
     msg = utils.count_new_files("ROSS")
     msg = truncated_msg(msg)
@@ -104,6 +129,9 @@ def main():
     application.add_handler(CommandHandler('cano', count_new_files_cano))
     application.add_handler(CommandHandler('garonzik', count_new_files_garonzik))
     application.job_queue.run_repeating(scheduled_tasks, interval=120, first = time(hour=6, minute=0, second=0, tzinfo=pytz.timezone('US/Eastern')), last= time(hour=19, minute=0, second=0, tzinfo=pytz.timezone('US/Eastern')))
+    application.job_queue.run_repeating(scheduled_msj, interval=900, first = time(hour=6, minute=0, second=0, tzinfo=pytz.timezone('US/Eastern')), last= time(hour=17, minute=0, second=0, tzinfo=pytz.timezone('US/Eastern')))
+    application.job_queue.run_daily(scheduled_msj_once, time(hour=7, minute=5, second=00, tzinfo=pytz.timezone('US/Eastern')), tuple(range(5)))
+    application.job_queue.run_daily(scheduled_msj_once, time(hour=12, minute=00, second=00, tzinfo=pytz.timezone('US/Eastern')), tuple(range(5)))
     print('Bot started')
     application.run_polling()
 
