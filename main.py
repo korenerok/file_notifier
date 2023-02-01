@@ -72,7 +72,7 @@ async def scheduled_msj(context):
         if provider in providers:
             chat_id = config[provider]['chat_id']
             msg = utils.count_new_files(provider)
-            if msg != f"•{provider} no new documents\n":                
+            if msg != f"•{provider}: no new documents\n":                
                 await context.bot.send_message(
                 chat_id = chat_id,
                 text = truncated_msg(msg)
@@ -136,8 +136,8 @@ def main():
     application.job_queue.run_repeating(duplicated_tasks, interval=45, first = time(hour=6, minute=0, second=0, tzinfo=pytz.timezone('US/Eastern')), last= time(hour=19, minute=0, second=0, tzinfo=pytz.timezone('US/Eastern')))
     application.job_queue.run_repeating(scheduled_tasks, interval=120, first = time(hour=6, minute=0, second=0, tzinfo=pytz.timezone('US/Eastern')), last= time(hour=19, minute=0, second=0, tzinfo=pytz.timezone('US/Eastern')))
     application.job_queue.run_repeating(scheduled_msj, interval=7200, first = time(hour=6, minute=0, second=0, tzinfo=pytz.timezone('US/Eastern')), last= time(hour=17, minute=0, second=0, tzinfo=pytz.timezone('US/Eastern')))
-    application.job_queue.run_daily(scheduled_msj_once, time(hour=7, minute=5, second=00, tzinfo=pytz.timezone('US/Eastern')), days=tuple(range(5)))
-    application.job_queue.run_daily(scheduled_msj_once, time(hour=12, minute=00, second=00, tzinfo=pytz.timezone('US/Eastern')), days=tuple(range(5)))
+    application.job_queue.run_daily(scheduled_msj_once, time(hour=7, minute=5, second=00, tzinfo=pytz.timezone('US/Eastern')), days=tuple(range(1,6)))
+    application.job_queue.run_daily(scheduled_msj_once, time(hour=12, minute=00, second=00, tzinfo=pytz.timezone('US/Eastern')), days=tuple(range(1,6)))
     print('Bot started')
     application.run_polling()
 

@@ -62,6 +62,12 @@ def filter_system_files(x,path):
     valid= valid and not (os.path.isdir(item_path) and x in foldersToSkip)
     return valid
 
+def duplicate2(filepath, filenames,provider,doctype):
+    for file in filenames:
+        
+    
+
+
 def not_inside_list(x,list):
     return x not in list
 
@@ -86,10 +92,14 @@ def scan_folder(mydb,path,provider=None,doctype=None,level=None):
         filesInFolder=[x[0] for x in myCursor.fetchall()]
         fileNameList= list(filter(lambda x: not_inside_list(x,filesInFolder) ,fileNameList))
         if len(fileNameList) > 0:
-            add_files(mydb,path,fileNameList,provider,doctype)
+            duplicate2(path, fileNameList,provider,doctype)
+            
+            #add_files(mydb,path,fileNameList,provider,doctype)
         return None
     except OSError:
         return OSError
+
+
 
 def record_new_files():
     try:
@@ -104,7 +114,7 @@ def record_new_files():
     except OSError:
         return OSError
     return None
-
+record_new_files()
 
 
 #--------function move archive-------------
@@ -126,13 +136,13 @@ def is_archive_folder(path):
     return path.split(os.sep)[-1].upper() == "ARCHIVE"
 
 def valid_file_for_archive(filename):
-    years=[x for x in range(2022,2042)]
-    return (os.path.isfile(filename)) or (os.path.isdir(filename) and filename not in years)
+    years=[str(x) for x in range(2022,2042)]
+    return str(filename)not in years
 
 def categorize_archives():
     folderpaths=os.walk(settings['path'])
     folderpaths=[x[0] for x in folderpaths]
-    folderpaths= list(filter(is_archive_folder,folderpaths))   
+    folderpaths= list(filter(is_archive_folder,folderpaths))  
     for archivefolder in folderpaths:
         archive_files(archivefolder)
 
@@ -169,7 +179,7 @@ def count_new_files(provider,update=True):
             mycursor.executemany("UPDATE faxes SET new = 0 WHERE id = %s",files_to_update)
             mydb.commit()
     else:
-        msj = f"•{provider} no new documents\n"
+        msj = f"•{provider}: no new documents\n"
 
     return msj
 
@@ -180,6 +190,7 @@ def is_in_print_folders(path):
     return document_type in print_folders and provider in providers
 
 def scan_print_files(path):
+    
     files = os.listdir(path)
     files= list(filter(lambda x: filter_system_files(x,path),files))
     printed_files=[] 
@@ -187,7 +198,7 @@ def scan_print_files(path):
     for filename in files:
         file = f"{path}{os.sep}{filename}"
         if os.path.isfile(file):
-            destination = f"{path}{os.sep}{'TO REVIEW'}"                
+            destination = f"{path}{os.sep}{'ARCHIVE'}"                
             if not os.path.exists(destination):
                 os.mkdir(destination)
             win32api.ShellExecute(0, "print", file , None, ".", 0)
@@ -198,7 +209,7 @@ def scan_print_files(path):
             error_msj+= f"Detected folder in {path} with the name {filename}. Please check.\n"
     mydb = connectionDb()
     mycursor = mydb.cursor()
-    mycursor.executemany("UPDATE faxes set toreview = 1, filepath = %s, processed_date=%s WHERE filename= %s AND filepath= %s",(printed_files))
+    mycursor.executemany("UPDATE faxes set new = 0, filepath = %s, processed_date=%s WHERE filename= %s AND filepath= %s",(printed_files))
     mydb.commit()
     if len(error_msj) > 0:
         return error_msj
@@ -208,11 +219,13 @@ def print_files():
     folderpaths=os.walk(settings['path'])
     folderpaths=[x[0] for x in folderpaths]
     folderpaths= list(filter(is_in_print_folders,folderpaths))
+    
     msj=""
-    for folder in folderpaths:        
-       result=scan_print_files(folder)
-       if result is not None:
-           msj+=result
+    for folder in folderpaths:      
+        print(folder)          
+        result=scan_print_files(folder)
+        if result is not None:
+            msj+=result
     if len(msj)>0:
         return msj
 
