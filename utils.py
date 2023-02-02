@@ -62,8 +62,13 @@ def filter_system_files(x,path):
     valid= valid and not (os.path.isdir(item_path) and x in foldersToSkip)
     return valid
 
-def duplicate2(filepath, filenames,provider,doctype):
+def duplicate(filepath, filenames,doctype):
     for file in filenames:
+        source = f"{filepath}{os.sep}{file}"
+        destiny = f"{settings['destinyPathDuplicate']}{os.sep}{doctype}"        
+        if not os.path.exists(destiny):
+            os.mkdir(destiny)
+        shutil.copy(source, f"{destiny}{os.sep}{file}")
         
     
 
@@ -92,9 +97,8 @@ def scan_folder(mydb,path,provider=None,doctype=None,level=None):
         filesInFolder=[x[0] for x in myCursor.fetchall()]
         fileNameList= list(filter(lambda x: not_inside_list(x,filesInFolder) ,fileNameList))
         if len(fileNameList) > 0:
-            duplicate2(path, fileNameList,provider,doctype)
-            
-            #add_files(mydb,path,fileNameList,provider,doctype)
+            duplicate(path, fileNameList,doctype)            
+            add_files(mydb,path,fileNameList,provider,doctype)
         return None
     except OSError:
         return OSError
@@ -114,7 +118,8 @@ def record_new_files():
     except OSError:
         return OSError
     return None
-record_new_files()
+
+
 
 
 #--------function move archive-------------
@@ -229,61 +234,6 @@ def print_files():
     if len(msj)>0:
         return msj
 
-def checking_proccesed_duplicates(mydb,path, filesInFolder):    
-    myCursor = mydb.cursor()
-    myCursor.execute("SELECT filename FROM duplicate where filepath = %s and processed_date IS NULL", (path,))
-    filesNotProcessed = [x[0] for x in myCursor.fetchall()]
-    filesThatWereProcessed =list(filter(lambda x: not_inside_list(x,filesInFolder),filesNotProcessed))
-    now=datetime.now()
-    filesThatWereProcessed = list(map(lambda x:(now,path,x),filesThatWereProcessed))
-    for file in filesThatWereProcessed:
-        myCursor.execute("UPDATE duplicate SET processed_date = %s WHERE filepath = %s AND filename = %s",file)
-        mydb.commit()
-    return len(filesThatWereProcessed)
-        
-def add_duplicates(mydb, filepath, filenames):
-    myCursor = mydb.cursor()
-    querySQL = " INSERT INTO duplicate (filepath, filename, dateduplicate) VALUES (%s,%s,%s)"
-    now = datetime.now()   
-    filenames = list(map(lambda x:(filepath,x,now), filenames))   
-    copy_files(filenames)
-    myCursor.executemany(querySQL, filenames)
-    mydb.commit()
-        
-   
-def copy_files(movelist):
-    for item in movelist:
-        src = f"{item[0]}{os.sep}{item[1]}"
-        destiny = f"{settings['destinyPathDuplicate']}{os.sep}{item[1]}"
-        shutil.copy(src, destiny)
-
-def duplicate():
-    try:
-        mydb = connectionDb()
-        myCursor =mydb.cursor(buffered=True)
-        path = settings['inboxPath']    
-        files = os.listdir(path) 
-        files= list(filter(lambda x: filter_system_files(x,path),files)) 
-        checking_proccesed_duplicates(mydb, path, files)
-        fileNameList=[] 
-        error_msj=""
-        for file in files:
-            filePath = f"{path}{os.sep}{file}"
-            if os.path.isfile(filePath):
-                fileNameList.append(file)
-            elif os.path.isdir(filePath):
-                error_msj+=f"Detected folder in {path} with the name {file}. Please check.\n"
-        myCursor.execute("SELECT filename FROM duplicate WHERE filepath = %s AND processed_date IS NULL",(path,))
-        filesInFolder=[x[0] for x in myCursor.fetchall()]
-        fileNameList = list(filter(lambda x: not_inside_list(x,filesInFolder), fileNameList))
-
-        if len(fileNameList) > 0:
-            add_duplicates(mydb, path, fileNameList)
-        mydb.close()
-        if len(error_msj) > 0:
-            return error_msj
-    except OSError:
-      return OSError
 
 def count_all_new_files(update_new_flag=True):
     msj=""
@@ -293,29 +243,29 @@ def count_all_new_files(update_new_flag=True):
 
 
 
-def check_files(filepath, filename):
-  poppler_path = config['SETTINGS']['poopler_path']
-  saving_folder = f"{config['SETTINGS']['convertedPathDuplicate']}{os.sep}{filename}"    
-  os.mkdir(saving_folder)
-  pages = convert_from_path(pdf_path=filepath, poppler_path=poppler_path)
-  c = 1
-  for page in pages:
-    img_name = f"{filename}-{c}.jpeg"
-    page.save(os.path.join(saving_folder,img_name),"JPEG")
-    c+=1
-  shutil.move(filepath, saving_folder)
+# def check_files(filepath, filename):
+#   poppler_path = config['SETTINGS']['poopler_path']
+#   saving_folder = f"{config['SETTINGS']['convertedPathDuplicate']}{os.sep}{filename}"    
+#   os.mkdir(saving_folder)
+#   pages = convert_from_path(pdf_path=filepath, poppler_path=poppler_path)
+#   c = 1
+#   for page in pages:
+#     img_name = f"{filename}-{c}.jpeg"
+#     page.save(os.path.join(saving_folder,img_name),"JPEG")
+#     c+=1
+#   shutil.move(filepath, saving_folder)
   
 
 
 
-def convert_pdf():  
-  path = config['SETTINGS']['destinyPathDuplicate']
-  folder = os.listdir(path)
-  for filename in folder:
-    if filename.endswith('.pdf'):    
-      file = f"{path}{os.sep}{filename}"    
-      if os.path.isfile(file):
-        check_files(file, filename)
-    else: 
-      return f"I detected a problem convert the files one is not {filename} is not a pdf file"
+# def convert_pdf():  
+#   path = config['SETTINGS']['destinyPathDuplicate']
+#   folder = os.listdir(path)
+#   for filename in folder:
+#     if filename.endswith('.pdf'):    
+#       file = f"{path}{os.sep}{filename}"    
+#       if os.path.isfile(file):
+#         check_files(file, filename)
+#     else: 
+#       return f"I detected a problem convert the files one is not {filename} is not a pdf file"
       

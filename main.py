@@ -45,14 +45,8 @@ async def chatId(update,context):
     chatId = update.message.chat.id
     await update.message.reply_text(chatId)
 
-async def duplicated_tasks(context):
-    duplicate =  utils.duplicate()
-    if duplicate is not None:
-        await context.bot.send_message(
-            chat_id = config['SETTINGS']['response_id'],
-            text = truncated_msg(duplicate)
-        )
-    utils.convert_pdf() 
+# async def duplicated_tasks(context):
+    #utils.convert_pdf() 
     
 
 async def scheduled_tasks(context):
@@ -133,7 +127,7 @@ def main():
     application.add_handler(CommandHandler('anderson', count_new_files_anderson))
     application.add_handler(CommandHandler('cano', count_new_files_cano))
     application.add_handler(CommandHandler('garonzik', count_new_files_garonzik))
-    application.job_queue.run_repeating(duplicated_tasks, interval=45, first = time(hour=6, minute=0, second=0, tzinfo=pytz.timezone('US/Eastern')), last= time(hour=19, minute=0, second=0, tzinfo=pytz.timezone('US/Eastern')))
+    #application.job_queue.run_repeating(duplicated_tasks, interval=45, first = time(hour=6, minute=0, second=0, tzinfo=pytz.timezone('US/Eastern')), last= time(hour=19, minute=0, second=0, tzinfo=pytz.timezone('US/Eastern')))
     application.job_queue.run_repeating(scheduled_tasks, interval=120, first = time(hour=6, minute=0, second=0, tzinfo=pytz.timezone('US/Eastern')), last= time(hour=19, minute=0, second=0, tzinfo=pytz.timezone('US/Eastern')))
     application.job_queue.run_repeating(scheduled_msj, interval=7200, first = time(hour=6, minute=0, second=0, tzinfo=pytz.timezone('US/Eastern')), last= time(hour=17, minute=0, second=0, tzinfo=pytz.timezone('US/Eastern')))
     application.job_queue.run_daily(scheduled_msj_once, time(hour=7, minute=5, second=00, tzinfo=pytz.timezone('US/Eastern')), days=tuple(range(1,6)))
