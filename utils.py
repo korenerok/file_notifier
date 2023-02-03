@@ -226,8 +226,7 @@ def print_files():
     folderpaths= list(filter(is_in_print_folders,folderpaths))
     
     msj=""
-    for folder in folderpaths:      
-        print(folder)          
+    for folder in folderpaths:        
         result=scan_print_files(folder)
         if result is not None:
             msj+=result
@@ -241,31 +240,70 @@ def count_all_new_files(update_new_flag=True):
         msj+= count_new_files(provider,update_new_flag)
     return msj
 
+def is_hidden_folder(path):
+    """return if the last member of the path is archive folder"""
+    provider = path.split(os.sep)[-2].upper()    
+    return path.split(os.sep)[-1].upper() in settings['hiddenFolders'] and provider in providers
 
+def hidden_folders():
+    folderpaths=os.walk(settings['path'])
+    folderpaths=[x[0] for x in folderpaths]
+    folderpaths= list(filter(is_hidden_folder,folderpaths))  
+    try:
+        for folder in folderpaths:
+            os.system(f"attrib +h {folder}")
+    except OSError:
+        return OSError
 
-# def check_files(filepath, filename):
-#   poppler_path = config['SETTINGS']['poopler_path']
-#   saving_folder = f"{config['SETTINGS']['convertedPathDuplicate']}{os.sep}{filename}"    
-#   os.mkdir(saving_folder)
-#   pages = convert_from_path(pdf_path=filepath, poppler_path=poppler_path)
-#   c = 1
-#   for page in pages:
-#     img_name = f"{filename}-{c}.jpeg"
-#     page.save(os.path.join(saving_folder,img_name),"JPEG")
-#     c+=1
-#   shutil.move(filepath, saving_folder)
+def is_default_folder(path):
+    default_folders= list(os.listdir(settings['default']))
+    return path.split(os.sep)[-1].upper() in default_folders
+     
+
+def scan_folder_to_convert(folderpath):
+    files = os.listdir(folderpath)
+    files= list(filter(lambda x: filter_system_files(x,folderpath),files))
+    error_msj =""
+    for filename in files:
+        if filename != 'CONVERTED' and filename.endswith(".pdf"):                         
+            poppler_path = settings['poopler_path']
+            pdf_path= f"{folderpath}{os.sep}{filename}"
+            saving_folder = f"{folderpath}{os.sep}CONVERTED"
+            if not os.path.exists(saving_folder):  
+                os.mkdir(saving_folder)
+            pages = convert_from_path(pdf_path=pdf_path, poppler_path=poppler_path)
+            c = 1
+            for page in pages:
+                img_name = f"{filename}-{c}.jpeg"
+                page.save(os.path.join(saving_folder,img_name),"JPEG")
+                c+=1
+            shutil.move(pdf_path, saving_folder)            
+        elif filename != 'CONVERTED':
+            error_msj+= f"The {folderpath}{os.sep}{filename}. can't convert Please check.\n"
+           
+             
+    if(len(error_msj)>0):
+        return error_msj
+    else:
+        return None
   
+        
+    
+    
 
 
-
-# def convert_pdf():  
-#   path = config['SETTINGS']['destinyPathDuplicate']
-#   folder = os.listdir(path)
-#   for filename in folder:
-#     if filename.endswith('.pdf'):    
-#       file = f"{path}{os.sep}{filename}"    
-#       if os.path.isfile(file):
-#         check_files(file, filename)
-#     else: 
-#       return f"I detected a problem convert the files one is not {filename} is not a pdf file"
-      
+def convert_pdf():    
+    folderpaths = os.walk(settings['destinyPathDuplicate'])
+    folderpaths=[x[0] for x in folderpaths]
+    folderpaths=list(filter(is_default_folder,folderpaths))     
+    msg = ""
+    for folder in folderpaths:      
+        result = scan_folder_to_convert(folder)
+        if result is not None:
+            msg+=result
+            
+    if len(msg)>0:
+        return msg
+    
+    
+    

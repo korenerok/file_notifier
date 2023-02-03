@@ -53,6 +53,7 @@ async def scheduled_tasks(context):
            
     utils.record_new_files()
     utils.categorize_archives()    
+    utils.hidden_folders()
     printer = utils.print_files()
     if printer is not None:
         await context.bot.send_message(
