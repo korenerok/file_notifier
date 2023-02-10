@@ -53,8 +53,12 @@ async def scheduled_tasks(context):
            
     utils.record_new_files()
     utils.categorize_archives()    
-    utils.hidden_folders()
+    utils.hidden_folders()    
+    fail_convert = utils.convert_pdf()
+    
+    
     printer = utils.print_files()
+    
     if printer is not None:
         await context.bot.send_message(
             chat_id = config['SETTINGS']['response_id'],

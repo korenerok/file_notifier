@@ -168,12 +168,12 @@ def count_new_files(provider,update=True):
     if len(result) > 0:
         files_to_update=[]
         document_type=None
-        msj = f"<b>•{provider}</b> ({len(result)} documents):\n"
+        msj = f"•{provider} ({len(result)} documents):\n"
         for row in result:
             files_to_update.append((str(row[0]), ))
             if row[1]!=document_type:
 
-                msj+=f"    {(row[1].replace('_','',1)).replace('_',' ')}:</b>\n"
+                msj+=f"    {(row[1].replace('_','',1)).replace('_',' ')}:\n"
                 document_type=row[1]
             
             if row[3]:
